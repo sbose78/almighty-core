@@ -1,0 +1,30 @@
+# See https://github.com/openshift/source-to-image/tree/master/examples
+# and https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md
+# for information about custon Source to Image (S2I) builder images.
+
+FROM centos:7
+
+MAINTAINER Konrad Kleine <kkleine@redhat.com>
+
+ENV LANG=en_US.utf8
+
+# Export the Venvironment variable that provides information about the application.
+# Replace this with the according version for your application.
+ENV ALMIGHTY_CORE_VERSION=0.0.1
+
+# Set the labels that are used for OpenShift to describe the builder image.
+LABEL io.k8s.description="almighty core source to image (S2I) runtime image" \
+    io.k8s.display-name="almighty core 0.0.1" \
+    io.openshift.expose-services="8080:http" \
+    io.openshift.tags="runtime,almighty" \
+    # this label tells s2i where to find its mandatory scripts
+    # (run, assemble, save-artifacts)
+    io.openshift.s2i.scripts-url="image:///usr/libexec/s2i"
+    # TODO add io.openshift.s2i.assemble-input-files to avoid specifying --runtime-artifacts on s2i build command
+
+# Copy the S2I scripts to /usr/libexec/s2i since we set the label that way
+COPY  ["assemble-runtime", "run", "usage", "/usr/libexec/s2i/"]
+
+# Modify the usage script in your application dir to inform the user how to run
+# this image.
+CMD ["/usr/libexec/s2i/usage"]

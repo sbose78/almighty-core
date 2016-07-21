@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# This script will run inside the runtime image where no build
+# tools whatsoever are installed. This script is here to do final
+# adjustments by modifying files before an image will be committed.
+#
+# See this page for more information on runtime images:
+# https://github.com/openshift/source-to-image/blob/master/docs/runtime_image.md
+
+# Show all commands prior to executing them
+set -x
+
+# Exit if a command fails
+set -e
+
+echo $WORKDIR
+
+echo "Inside the assemble-runtime script"
+
+popd
+

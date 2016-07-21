@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# Show all commands prior to executing them
+set -x
+
+# Exit if a command fails
+set -e
+
+# inform the user how to use the image
+cat <<EOF
+This is a S2I almighty-core builder image, to use it, install
+https://github.com/openshift/source-to-image
+EOF

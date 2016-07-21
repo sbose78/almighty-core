@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# This script will be executed inside our builder image where
+# all the tools that we need to build our software are installed.
+# It shall build the artifacts the will later be installed
+# inside the runtime-image.
+
+# Show all commands prior to executing them
+set -x
+
+# Exit if a command fails
+set -e
+
+# Where the source is stored?
+SOURCE_PATH=/tmp/s2i/src
+
+# Where to copy the source to
+PACKAGE_PATH=${GOPATH}/src/github.com/almighty/almighty-core
+
+export GOPATH=${HOME}/go
+
+mkdir -pv ${GOPATH}/bin
+mkdir -pv ${GOPATH}/pkg
+mkdir -pv ${GOPATH}/src
+mkdir -pv ${PACKAGE_PATH}
+
+# Move source code to correct build directory
+mv ${SOURCE_PATH} $PACKAGE_PATH
+
+export GOBIN=${HOME}/go/bin
+export GO15VENDOREXPERIMENT=1
+export PATH=$PATH:${GOBIN}
+
+# Output some Go information
+go env
+
+# Build the application artifacts
+pushd ${HOME}
+
+cd ${SOURCE_DIR}
+make deps
+make generate
+make
+
+# Since this script will be installed inside the builder image
+# we don't have to install anything. The artifacts will be
+# copied from their current position to the host and into the
+# the runtime image later.
+
+popd
+

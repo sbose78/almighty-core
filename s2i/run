@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Show all commands prior to executing them
+set -x
+
+# Exit if a command fails
+set -e
+
+# Run the application
+# /opt/application/alm
+
+echo "Run is not executed on the builder image"
