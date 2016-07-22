@@ -7,10 +7,6 @@ MAINTAINER Konrad Kleine <kkleine@redhat.com>
 
 ENV LANG=en_US.utf8
 
-
-# Some packages might seem weird but they are required by the
-# RVM installer. Clean the yum cache so that we don't have any
-# cached files waste space.
 RUN dnf install -y \
       findutils \
       git \
