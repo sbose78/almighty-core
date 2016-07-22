@@ -1,4 +1,4 @@
-# Source to Image (S2)
+# Source to Image (S2I)
 
 Here you can find files needed to build a builder and a runtime image.
 
