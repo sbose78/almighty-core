@@ -100,8 +100,9 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
-
+		title := ctx.Payload.Fields["system.title"]
+		convTitle := fmt.Sprint(title)
+		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, convTitle, ctx.Payload.Fields)
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
@@ -135,9 +136,12 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 
+		title := ctx.Payload.Fields["system.title"]
+		titleAsString := fmt.Sprint(title)
+
 		toSave := app.WorkItem{
 			ID:      ctx.ID,
-			Name:    ctx.Payload.Name,
+			Name:    titleAsString,
 			Type:    ctx.Payload.Type,
 			Version: ctx.Payload.Version,
 			Fields:  ctx.Payload.Fields,
