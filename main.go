@@ -137,10 +137,11 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+
 	http.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		_, err := db.DB().Exec("select 1")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		_, error := db.DB().Exec("select 1")
+		if error != nil {
+			http.Error(w, error.Error(), http.StatusInternalServerError)
 		}
 		return
 	})
