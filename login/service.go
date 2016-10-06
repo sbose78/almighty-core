@@ -54,7 +54,16 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		}
 
 		ghtoken, err := gh.config.Exchange(ctx, code)
-		if err != nil {
+
+		/*
+
+			In case of invalid code, this is what we get in the ghtoken object
+
+			&oauth2.Token{AccessToken:"", TokenType:"", RefreshToken:"", Expiry:time.Time{sec:0, nsec:0, loc:(*time.Location)(nil)}, raw:url.Values{"error":[]string{"bad_verification_code"}, "error_description":[]string{"The code passed is incorrect or expired."}, "error_uri":[]string{"https://developer.github.com/v3/oauth/#bad-verification-code"}}}
+
+		*/
+
+		if err != nil || ghtoken.AccessToken == "" {
 			fmt.Println(err)
 			return ctx.Unauthorized()
 		}
