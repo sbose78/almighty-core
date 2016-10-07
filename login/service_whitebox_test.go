@@ -1,7 +1,6 @@
 package login
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -64,13 +63,20 @@ func setup() {
 
 func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.Database)
-	setup()
-	accessToken := &oauth2.Token{
-		AccessToken: "ccd845b7499e20b6faaf4dc036845a12fd5d1ee6",
-		TokenType:   "Bearer",
-	}
-	emails, err := loginService.getUserEmails(context.Background(), accessToken)
-	t.Log(emails, err)
+
+	/*
+		if db == nil || loginService == nil {
+			setup()
+		}
+		accessToken := &oauth2.Token{
+			// This has to be an encrypted token ( without our keys )
+			// because github doesn't allow commiting plaintext access tokens.
+			AccessToken: "ccd845b7499e20b6faaf4dc036845a12fd5d1ee6",
+			TokenType:   "Bearer",
+		}
+		emails, err := loginService.getUserEmails(context.Background(), accessToken)
+		t.Log(emails, err)
+	*/
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
@@ -78,13 +84,16 @@ func TestInvalidOAuthAccessToken(t *testing.T) {
 }
 
 func TestGetUserEmails(t *testing.T) {
+	resource.Require(t, resource.Database)
 
 }
 
 func TestGetUser(t *testing.T) {
+	resource.Require(t, resource.Database)
 
 }
 
 func TestFilterPrimaryEmail(t *testing.T) {
+	resource.Require(t, resource.Database)
 
 }

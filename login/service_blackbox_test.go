@@ -102,13 +102,17 @@ func TestValidOAuthAuthorizationCode(t *testing.T) {
 
 }
 
-func TestInvalidState(t *testing.T) {
+func TestValidState(t *testing.T) {
 	resource.Require(t, resource.Database)
 
 	// We do not have a test for a valid
 	// authorization code because it needs a
 	// user UI workflow. Furthermore, the code can be used
 	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
+}
+
+func TestInvalidState(t *testing.T) {
+	resource.Require(t, resource.Database)
 
 	// Setup request context
 	rw := httptest.NewRecorder()
@@ -169,12 +173,9 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	if err != nil {
 		t.Fatal("Redirect URL is in a wrong format ", err)
 	}
-	t.Log(rw.Code)
-	t.Logf("%#v", rw.HeaderMap["Location"][0])
 
-	values := locationUrl.Query()
-	returnedState := values["state"][0]
-	t.Log(values["state"][0])
+	allQueryParameters := locationUrl.Query()
+	returnedState := allQueryParameters["state"][0]
 
 	prms = url.Values{
 		"state": {returnedState},
