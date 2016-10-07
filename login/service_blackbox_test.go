@@ -27,21 +27,16 @@ var db *gorm.DB
 var loginService Service
 
 func TestMain(m *testing.M) {
-	if _, c := os.LookupEnv(resource.Database); c == false {
-		fmt.Printf(resource.StSkipReasonNotSet+"\n", resource.Database)
-		return
-	}
+	if _, c := os.LookupEnv(resource.Database); c != false {
 
-	dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-	if "" == dbhost {
-		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
+		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
+		db, err := gorm.Open("postgres", fmt.Sprintf("host=%s database=postgres user=postgres password=mysecretpassword sslmode=disable", dbhost))
+
+		if err != nil {
+			panic("Failed to connect database: " + err.Error())
+		}
+		defer db.Close()
 	}
-	var err error
-	db, err = gorm.Open("postgres", fmt.Sprintf("host=%s database=postgres user=postgres password=mysecretpassword sslmode=disable", dbhost))
-	if err != nil {
-		panic("failed to connect database: " + err.Error())
-	}
-	defer db.Close()
 
 	oauth := &oauth2.Config{
 		ClientID:     "875da0d2113ba0a6951d",
@@ -69,7 +64,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestGithubOAuthAuthorizationRedirect(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 
 	rw := httptest.NewRecorder()
 	u := &url.URL{
@@ -95,24 +91,29 @@ func TestGithubOAuthAuthorizationRedirect(t *testing.T) {
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 
 	// Current the OAuth code is generated as part of a UI workflow.
 	// Yet to figure out how to mock.
+	t.Skip("Authorization Code not avaiable")
 
 }
 
 func TestValidState(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 
 	// We do not have a test for a valid
 	// authorization code because it needs a
 	// user UI workflow. Furthermore, the code can be used
 	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
+	t.Skip("Authorization Code not avaiable")
 }
 
 func TestInvalidState(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 
 	// Setup request context
 	rw := httptest.NewRecorder()
@@ -125,7 +126,7 @@ func TestInvalidState(t *testing.T) {
 	}
 	prms := url.Values{
 		"state": {},
-		"code":  {"invalid_code"},
+		"code":  {"doesnt_matter_what_is_here"},
 	}
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
@@ -139,7 +140,8 @@ func TestInvalidState(t *testing.T) {
 }
 
 func TestInvalidOAuthAuthorizationCode(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 
 	// We do not have a test for a valid
 	// authorization code because it needs a
