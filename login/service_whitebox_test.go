@@ -19,6 +19,11 @@ import (
 var db *gorm.DB
 var loginService *gitHubOAuth
 
+// Github doesn't allow commiting actual tokens no matter how
+// less privleges the token has.
+var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+var actualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
 func setup() {
 	if _, c := os.LookupEnv(resource.Database); c == false {
 		fmt.Printf(resource.StSkipReasonNotSet+"\n", resource.Database)
@@ -71,11 +76,6 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		setup()
 	}
 
-	// Github doesn't allow commiting actual tokens no matter how
-	// less privleges the token has.
-	camouflagedAccessToken := "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
-	actualToken := strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
-
 	accessToken := &oauth2.Token{
 		AccessToken: actualToken,
 		TokenType:   "Bearer",
@@ -89,16 +89,60 @@ func TestValidOAuthAccessToken(t *testing.T) {
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.Database)
+
+	if db == nil || loginService == nil {
+		setup()
+	}
+
+	invalidAccessToken := "7423742yuuiy-INVALID-73842342389h"
+
+	accessToken := &oauth2.Token{
+		AccessToken: invalidAccessToken,
+		TokenType:   "Bearer",
+	}
+
+	emails, err := loginService.getUserEmails(context.Background(), accessToken)
+	assert.Nil(t, err)
+	assert.Empty(t, emails)
+
 }
 
 func TestGetUserEmails(t *testing.T) {
 	resource.Require(t, resource.Database)
+
+	if db == nil || loginService == nil {
+		setup()
+	}
+
+	accessToken := &oauth2.Token{
+		AccessToken: actualToken,
+		TokenType:   "Bearer",
+	}
+
+	githubEmails, err := loginService.getUserEmails(context.Background(), accessToken)
+	t.Log(githubEmails)
+	assert.Nil(t, err)
+	assert.NotNil(t, githubEmails)
+	assert.NotEmpty(t, githubEmails)
 
 }
 
 func TestGetUser(t *testing.T) {
 	resource.Require(t, resource.Database)
 
+	if db == nil || loginService == nil {
+		setup()
+	}
+
+	accessToken := &oauth2.Token{
+		AccessToken: actualToken,
+		TokenType:   "Bearer",
+	}
+
+	githubUser, err := loginService.getUser(context.Background(), accessToken)
+	assert.Nil(t, err)
+	assert.NotNil(t, githubUser)
+	t.Log(githubUser)
 }
 
 func TestFilterPrimaryEmail(t *testing.T) {
