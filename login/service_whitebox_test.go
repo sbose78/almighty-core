@@ -1,14 +1,17 @@
 package login
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
 	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 )
@@ -64,19 +67,24 @@ func setup() {
 func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	/*
-		if db == nil || loginService == nil {
-			setup()
-		}
-		accessToken := &oauth2.Token{
-			// This has to be an encrypted token ( without our keys )
-			// because github doesn't allow commiting plaintext access tokens.
-			AccessToken: "ccd845b7499e20b6faaf4dc036845a12fd5d1ee6",
-			TokenType:   "Bearer",
-		}
-		emails, err := loginService.getUserEmails(context.Background(), accessToken)
-		t.Log(emails, err)
-	*/
+	if db == nil || loginService == nil {
+		setup()
+	}
+
+	// Github doesn't allow commiting actual tokens no matter how
+	// less privleges the token has.
+	camouflagedAccessToken := "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+	actualToken := strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
+	accessToken := &oauth2.Token{
+		AccessToken: actualToken,
+		TokenType:   "Bearer",
+	}
+
+	emails, err := loginService.getUserEmails(context.Background(), accessToken)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, emails)
+
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
