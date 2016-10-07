@@ -178,7 +178,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 
 	// Avoiding panics.
 	assert.NotNil(t, allQueryParameters)
-	assert.NotNil(t, allQueryParameters["status"])
+	assert.NotNil(t, allQueryParameters["state"])
 
 	returnedState := allQueryParameters["state"][0]
 
