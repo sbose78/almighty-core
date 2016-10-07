@@ -175,6 +175,11 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	}
 
 	allQueryParameters := locationUrl.Query()
+
+	// Avoiding panics.
+	assert.NotNil(t, allQueryParameters)
+	assert.NotNil(t, allQueryParameters["status"])
+
 	returnedState := allQueryParameters["state"][0]
 
 	prms = url.Values{
