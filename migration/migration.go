@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -10,12 +11,18 @@ import (
 
 // Perform executes the required migration of the database on startup
 func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
+
+	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+
 	db.AutoMigrate(
 		&models.WorkItem{},
 		&models.WorkItemType{},
 		&remoteworkitem.Tracker{},
 		&remoteworkitem.TrackerQuery{},
-		&remoteworkitem.TrackerItem{})
+		&remoteworkitem.TrackerItem{},
+		&account.Identity{},
+		&account.User{})
+
 	if db.Error != nil {
 		return db.Error
 	}
