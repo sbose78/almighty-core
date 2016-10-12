@@ -12,6 +12,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	invalidCodeError              string = "Invalid OAuth2.0 code"
+	primaryEmailNotFoundError     string = "Primary email not found"
+	associatedEmailsNotFoundError string = "Associated emails not found"
+)
+
 // Service defines the basic entrypoint required to perform a remote oauth login
 type Service interface {
 	Perform(ctx *app.AuthorizeLoginContext) error
@@ -40,16 +46,23 @@ var stateReferer = map[string]string{}
 func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
+	referer := ctx.RequestData.Header.Get("Referer")
+
 	if code != "" {
 		// After redirect from oauth provider
 
 		// validate known state
-		var referer string
+		var knownReferer string
 		defer func() {
 			delete(stateReferer, state)
 		}()
 
-		if referer = stateReferer[state]; referer == "" || state == "" {
+		knownReferer = stateReferer[state]
+		if state == "" || knownReferer == "" {
+			if referer != "" {
+				ctx.ResponseData.Header().Set("Location", referer+"?error=Invalid State")
+				return ctx.TemporaryRedirect()
+			}
 			return ctx.Unauthorized()
 		}
 
@@ -65,6 +78,10 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		if err != nil || ghtoken.AccessToken == "" {
 			fmt.Println(err)
+			if referer != "" {
+				ctx.ResponseData.Header().Set("Location", referer+"?error=Invalid Code")
+				return ctx.TemporaryRedirect()
+			}
 			return ctx.Unauthorized()
 		}
 
@@ -73,11 +90,19 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		primaryEmail := filterPrimaryEmail(emails)
 		if primaryEmail == "" {
+			if referer != "" {
+				ctx.ResponseData.Header().Set("Location", referer+"?error=No primary email found")
+				return ctx.TemporaryRedirect()
+			}
 			fmt.Println("No primary email found?! ", emails)
 			return ctx.Unauthorized()
 		}
 		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
 		if err != nil {
+			if referer != "" {
+				ctx.ResponseData.Header().Set("Location", referer+"?error=Associated user not found "+err.Error())
+				return ctx.TemporaryRedirect()
+			}
 			fmt.Println(err)
 			return ctx.Unauthorized()
 		}
@@ -119,7 +144,6 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	// First time access, redirect to oauth provider
 
 	// store referer id to state for redirect later
-	referer := ctx.RequestData.Header.Get("Referer")
 	fmt.Println("Got Request from: ", referer)
 	state = uuid.NewV4().String()
 	stateReferer[state] = referer

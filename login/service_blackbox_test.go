@@ -139,7 +139,7 @@ func TestInvalidState(t *testing.T) {
 	assert.Equal(t, 401, rw.Code)
 }
 
-func TestInvalidOAuthAuthorizationCode(t *testing.T) {
+func TestInvalidOAuthAuthorizationCodeWithReferer(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
@@ -154,7 +154,8 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 		Path: fmt.Sprintf("/api/login/authorize"),
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	req.Header.Add("referer", "localhost")
+	refererUrl := "localhost"
+	req.Header.Add("referer", refererUrl)
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
@@ -195,6 +196,78 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 
 	err = loginService.Perform(authorizeCtx)
 
+	locationString = rw.HeaderMap["Location"][0]
+	locationUrl, err = url.Parse(locationString)
+	if err != nil {
+		t.Fatal("Redirect URL is in a wrong format ", err)
+	}
+
+	allQueryParameters = locationUrl.Query()
+	assert.Equal(t, 307, rw.Code)
+	// Avoiding panics.
+	assert.NotNil(t, allQueryParameters)
+	assert.NotNil(t, allQueryParameters["error"])
+
+	returnedErrorReason := allQueryParameters["error"][0]
+	assert.NotEmpty(t, returnedErrorReason)
+	assert.Contains(t, locationString, refererUrl)
+}
+
+func TestInvalidOAuthAuthorizationCodeWithoutReferer(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	// We do not have a test for a valid
+	// authorization code because it needs a
+	// user UI workflow. Furthermore, the code can be used
+	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
+
+	// Setup request context
+	rw := httptest.NewRecorder()
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize"),
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+	prms := url.Values{}
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	err = loginService.Perform(authorizeCtx)
+
+	assert.Equal(t, 307, rw.Code)
+
+	locationString := rw.HeaderMap["Location"][0]
+	locationUrl, err := url.Parse(locationString)
+	if err != nil {
+		t.Fatal("Redirect URL is in a wrong format ", err)
+	}
+
+	allQueryParameters := locationUrl.Query()
+
+	// Avoiding panics.
+	assert.NotNil(t, allQueryParameters)
+	assert.NotNil(t, allQueryParameters["state"])
+
+	returnedState := allQueryParameters["state"][0]
+
+	prms = url.Values{
+		"state": {returnedState},
+		"code":  {"INVALID_OAUTH2.0_CODE"},
+	}
+	ctx = context.Background()
+	rw = httptest.NewRecorder()
+	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+
+	err = loginService.Perform(authorizeCtx)
 	assert.Equal(t, 401, rw.Code)
 
 }

@@ -21,7 +21,7 @@ func TestGenerateToken(t *testing.T) {
 
 	fullName := "Mr Test Case"
 
-	tokenString := manager.Generate(account.Identity{
+	tokenString, err := manager.Generate(account.Identity{
 		ID:       uuid.NewV4(),
 		FullName: fullName,
 		ImageURL: "http://some.com/image",
