@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	invalidCodeError              string = "Invalid OAuth2.0 code"
-	primaryEmailNotFoundError     string = "Primary email not found"
-	associatedEmailsNotFoundError string = "Associated emails not found"
+	invalidCodeError          string = "Invalid OAuth2.0 code"
+	invalidStateError         string = "Invalid State"
+	primaryEmailNotFoundError string = "Primary email not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -60,7 +60,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error=Invalid State")
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+invalidStateError)
 				return ctx.TemporaryRedirect()
 			}
 			return ctx.Unauthorized()
@@ -79,7 +79,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		if err != nil || ghtoken.AccessToken == "" {
 			fmt.Println(err)
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error=Invalid Code")
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+invalidCodeError)
 				return ctx.TemporaryRedirect()
 			}
 			return ctx.Unauthorized()
@@ -91,7 +91,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		primaryEmail := filterPrimaryEmail(emails)
 		if primaryEmail == "" {
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error=No primary email found")
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+primaryEmailNotFoundError)
 				return ctx.TemporaryRedirect()
 			}
 			fmt.Println("No primary email found?! ", emails)
