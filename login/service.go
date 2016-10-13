@@ -3,6 +3,7 @@ package login
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -13,9 +14,9 @@ import (
 )
 
 const (
-	invalidCodeError          string = "Invalid OAuth2.0 code"
-	invalidStateError         string = "Invalid State"
-	primaryEmailNotFoundError string = "Primary email not found"
+	InvalidCodeError          string = "Invalid OAuth2.0 code"
+	InvalidStateError         string = "Invalid State"
+	PrimaryEmailNotFoundError string = "Primary email not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -42,6 +43,7 @@ type gitHubOAuth struct {
 
 // TEMP: This will leak memory in the long run with many 'failed' redirect attemts
 var stateReferer = map[string]string{}
+var mapLock sync.RWMutex
 
 func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	state := ctx.Params.Get("state")
@@ -60,7 +62,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+invalidStateError)
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+InvalidStateError)
 				return ctx.TemporaryRedirect()
 			}
 			return ctx.Unauthorized()
@@ -79,7 +81,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		if err != nil || ghtoken.AccessToken == "" {
 			fmt.Println(err)
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+invalidCodeError)
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+InvalidCodeError)
 				return ctx.TemporaryRedirect()
 			}
 			return ctx.Unauthorized()
@@ -91,7 +93,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		primaryEmail := filterPrimaryEmail(emails)
 		if primaryEmail == "" {
 			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+primaryEmailNotFoundError)
+				ctx.ResponseData.Header().Set("Location", referer+"?error="+PrimaryEmailNotFoundError)
 				return ctx.TemporaryRedirect()
 			}
 			fmt.Println("No primary email found?! ", emails)
@@ -146,7 +148,10 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	// store referer id to state for redirect later
 	fmt.Println("Got Request from: ", referer)
 	state = uuid.NewV4().String()
+
+	mapLock.Lock()
 	stateReferer[state] = referer
+	mapLock.Unlock()
 
 	redirectURL := gh.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
 	ctx.ResponseData.Header().Set("Location", redirectURL)

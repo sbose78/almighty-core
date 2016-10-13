@@ -72,7 +72,7 @@ func TestGithubOAuthAuthorizationRedirect(t *testing.T) {
 		Path: fmt.Sprintf("/api/login/authorize"),
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	req.Header.Add("referer", "localhost")
+	req.Header.Add("referer", "https://localhost/path")
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
@@ -154,7 +154,7 @@ func TestInvalidOAuthAuthorizationCodeWithReferer(t *testing.T) {
 		Path: fmt.Sprintf("/api/login/authorize"),
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	refererUrl := "localhost"
+	refererUrl := "https://localhost/path"
 	req.Header.Add("referer", refererUrl)
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
@@ -177,11 +177,12 @@ func TestInvalidOAuthAuthorizationCodeWithReferer(t *testing.T) {
 		t.Fatal("Redirect URL is in a wrong format ", err)
 	}
 
+	t.Log(locationString)
 	allQueryParameters := locationUrl.Query()
 
 	// Avoiding panics.
 	assert.NotNil(t, allQueryParameters)
-	assert.NotNil(t, allQueryParameters["state"])
+	assert.NotNil(t, allQueryParameters["state"][0])
 
 	returnedState := allQueryParameters["state"][0]
 
@@ -202,11 +203,13 @@ func TestInvalidOAuthAuthorizationCodeWithReferer(t *testing.T) {
 		t.Fatal("Redirect URL is in a wrong format ", err)
 	}
 
+	t.Log(locationString)
 	allQueryParameters = locationUrl.Query()
 	assert.Equal(t, 307, rw.Code)
 	// Avoiding panics.
 	assert.NotNil(t, allQueryParameters)
 	assert.NotNil(t, allQueryParameters["error"])
+	assert.Equal(t, allQueryParameters["error"][0], InvalidCodeError)
 
 	returnedErrorReason := allQueryParameters["error"][0]
 	assert.NotEmpty(t, returnedErrorReason)
@@ -245,6 +248,8 @@ func TestInvalidOAuthAuthorizationCodeWithoutReferer(t *testing.T) {
 	assert.Equal(t, 307, rw.Code)
 
 	locationString := rw.HeaderMap["Location"][0]
+	t.Log(locationString)
+
 	locationUrl, err := url.Parse(locationString)
 	if err != nil {
 		t.Fatal("Redirect URL is in a wrong format ", err)
