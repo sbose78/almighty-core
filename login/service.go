@@ -94,8 +94,6 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		if err != nil {
 			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Associated user not found "+err.Error())
 			return ctx.TemporaryRedirect()
-			fmt.Println(err)
-			return ctx.Unauthorized()
 		}
 		var identity account.Identity
 		if len(users) == 0 {
