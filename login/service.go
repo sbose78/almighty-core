@@ -85,10 +85,9 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		primaryEmail := filterPrimaryEmail(emails)
 		if primaryEmail == "" {
+			fmt.Println("No primary email found?! ", emails)
 			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+PrimaryEmailNotFoundError)
 			return ctx.TemporaryRedirect()
-			fmt.Println("No primary email found?! ", emails)
-			return ctx.Unauthorized()
 		}
 		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
 		if err != nil {
