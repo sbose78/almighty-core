@@ -61,10 +61,6 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
-			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+InvalidStateError)
-				return ctx.TemporaryRedirect()
-			}
 			return ctx.Unauthorized()
 		}
 
@@ -80,11 +76,8 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		if err != nil || ghtoken.AccessToken == "" {
 			fmt.Println(err)
-			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+InvalidCodeError)
-				return ctx.TemporaryRedirect()
-			}
-			return ctx.Unauthorized()
+			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+InvalidCodeError)
+			return ctx.TemporaryRedirect()
 		}
 
 		emails, err := gh.getUserEmails(ctx, ghtoken)
@@ -92,19 +85,15 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		primaryEmail := filterPrimaryEmail(emails)
 		if primaryEmail == "" {
-			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error="+PrimaryEmailNotFoundError)
-				return ctx.TemporaryRedirect()
-			}
+			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+PrimaryEmailNotFoundError)
+			return ctx.TemporaryRedirect()
 			fmt.Println("No primary email found?! ", emails)
 			return ctx.Unauthorized()
 		}
 		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
 		if err != nil {
-			if referer != "" {
-				ctx.ResponseData.Header().Set("Location", referer+"?error=Associated user not found "+err.Error())
-				return ctx.TemporaryRedirect()
-			}
+			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Associated user not found "+err.Error())
+			return ctx.TemporaryRedirect()
 			fmt.Println(err)
 			return ctx.Unauthorized()
 		}
@@ -139,7 +128,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			return ctx.Unauthorized()
 		}
 
-		ctx.ResponseData.Header().Set("Location", referer+"?token="+almtoken)
+		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+almtoken)
 		return ctx.TemporaryRedirect()
 	}
 
@@ -150,8 +139,9 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	state = uuid.NewV4().String()
 
 	mapLock.Lock()
+	defer mapLock.Unlock()
+
 	stateReferer[state] = referer
-	mapLock.Unlock()
 
 	redirectURL := gh.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
 	ctx.ResponseData.Header().Set("Location", redirectURL)
